@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown'; // Import react-markdown for rendering Markdown
 import './App.css'; // Import the CSS file for styling
 
-const apiUrl = 'http://localhost:8000'; // Change this if your FastAPI server is running elsewhere
+const apiUrl = process.env.REACT_APP_API_URL;; // Change this if your FastAPI server is running elsewhere
 
 const App = () => {
   const [docName, setDocName] = useState('');
@@ -17,15 +17,18 @@ const App = () => {
 
   // Handle document summary request
   const getSummary = async () => {
+    if (!docName || !docType) {
+      alert('Please select a document and specify its type.');
+      return;
+    }
     setLoading(true);
     try {
       const res = await axios.get(`${apiUrl}/summary`, {
         params: { doc_name: docName, doc_type: docType },
       });
-      console.log(res);
+      console.log("Looking for summary")
       setResponse(res.data.doc_summary);
     } catch (error) {
-      console.log(error);
       setResponse(error.response.data.detail);
     } finally {
       setLoading(false);
@@ -34,6 +37,10 @@ const App = () => {
 
   // Handle document search request
   const searchDocuments = async () => {
+    if (!searchQuery) {
+      alert('Please enter the query.');
+      return;
+    }
     setLoading(true);
     try {
       const res = await axios.get(`${apiUrl}/search`, {
@@ -44,6 +51,8 @@ const App = () => {
         setResponse(res.data.reference);
       }else if (action === "get_matching_documents"){
         setResponse(res.data.document_names.join("\n"));
+      }else if (action === "lookup_query"){
+        setResponse(res.data.reference);
       }
       
     } catch (error) {
@@ -70,7 +79,7 @@ const App = () => {
       const res = await axios.post(`${apiUrl}/upload-document`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      setResponse(res.data);
+      setResponse(res.data.message);
     } catch (error) {
       setResponse({ error: 'Error uploading document.' });
     } finally {
@@ -143,6 +152,7 @@ const App = () => {
             >
               <option value="get_matching_documents">Get Matching Documents</option>
               <option value="get_document_references">Get Document References</option>
+              <option value="lookup_query">Lookup Query</option>
             </select>
             <button onClick={searchDocuments} disabled={loading}>
               Search
